@@ -1,0 +1,92 @@
+import os
+import discord
+from discord.ext import commands, tasks
+from asyncio import sleep
+import pymongo
+import aiohttp
+import datetime
+from discord.utils import get
+from datetime import datetime
+color = 0x2f3136
+
+os.system("pip install dnspython")
+color = 0x2f3136
+intents=discord.Intents.all()
+intents.members = True
+botname = "Haunting"
+mongodb = pymongo.MongoClient('mongodb+srv://prada:prada@prada.qnsvb.mongodb.net/?retryWrites=true&w=majority')
+db2 = mongodb.get_database("aries").get_collection("arieslol")
+blacklist = mongodb.get_database("discord").get_collection("blacklists")
+def blacklist_check():
+    def predicate(ctx):
+        author_id = ctx.author.id
+        if blacklist.find_one({'user_id': author_id}):
+            return False
+        return True
+    return commands.check(predicate)
+
+
+
+class aries:
+
+
+    def newserver(owner_id, server_id):
+        db2.insert_one({
+          "whitelisted": [owner_id],
+          "punishment": "ban",
+          'autorole': None,
+          'welcomechannel': None,
+          'welcomemessage': None,
+          "guild_id": server_id
+        })
+
+os.system("pip install dnspython")
+class Autorole(commands.Cog):
+    def __init__(self, client):
+        self.client = client
+    
+    mongodb = pymongo.MongoClient('mongodb+srv://prada:prada@prada.qnsvb.mongodb.net/?retryWrites=true&w=majority')
+    db = mongodb.get_database("discord").get_collection("welcoming")
+    db2 = mongodb.get_database("aries").get_collection("arieslol")
+    blacklist = mongodb.get_database("discord").get_collection("blacklists")
+
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+          guild = member.guild
+          autoroleid = self.db2.find_one({ "guild_id": guild.id})['autorole']
+          try:
+               if autoroleid is None:
+                   pass
+               else:
+                 autorole = get(guild.roles, id=int(autoroleid))
+                 await member.add_roles(autorole, reason="Autorole")
+          except:
+             pass
+
+
+
+    @commands.command()
+    @blacklist_check()
+    @commands.cooldown(1, 8, commands.BucketType.user)
+    @commands.has_permissions(administrator=True)
+    async def autorole(self, ctx, *, role : discord.Role = None):
+      if not db2.find_one({ "guild_id": ctx.guild.id }):
+        guild_ = client.get_guild(ctx.guild.id)
+        aries.new(guild_.owner.id, guild_.id)
+      if role == None:
+       embed = discord.Embed(title=f'haunting', color=color, description=f'> <:dnd:873102876350746675> **please specify a role to set**')
+       embed.set_thumbnail(url=client.user.avatar_url)
+       embed.set_footer(text=f'Requested by {ctx.author.name}#{ctx.author.discriminator}', icon_url=ctx.author.avatar_url)
+       await ctx.send(embed=embed)
+       return
+      else:
+        db2.update_one({"guild_id": ctx.guild.id }, {"$set": { f"autorole": f'{role.id}'}})
+        embed = discord.Embed(title=f'haunting', description=f'The Autorole is set to: **{role}**, do .toggle autorole if you would like to turn it off',color=color)
+        embed.set_thumbnail(url=ctx.guild.icon_url)
+        embed.set_footer(text=f'Requested by {ctx.author.name}#{ctx.author.discriminator}', icon_url=ctx.author.avatar_url)
+        await ctx.send(embed=embed)
+  
+
+def setup(client):
+    client.add_cog((Autorole)(client))
